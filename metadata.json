@@ -1,0 +1,5 @@
+{
+  "name": "AI 뉴스 요약",
+  "description": "최신 AI 뉴스를 가져와  한국어로 요약해주는 앱입니다.",
+  "requestFramePermissions": []
+}
