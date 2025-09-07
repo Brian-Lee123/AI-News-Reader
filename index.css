@@ -121,10 +121,13 @@ body {
   border-radius: 6px;
   cursor: pointer;
   transition: background-color 0.2s, color 0.2s;
+  color: var(--text-color);
+  font-weight: 700;
 }
 
 .logout-button:hover {
   background-color: var(--hover-bg-color);
+  color: var(--primary-color);
 }
 
 .content {
