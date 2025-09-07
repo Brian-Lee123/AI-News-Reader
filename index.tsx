@@ -36,6 +36,56 @@ interface Article {
   guid: string;
 }
 
+type SummaryLength = 'short' | 'medium' | 'long';
+
+const ShareModal = ({ article, onClose }: { article: Article, onClose: () => void }) => {
+    const [copied, setCopied] = useState(false);
+
+    useEffect(() => {
+        const handleEsc = (event: KeyboardEvent) => {
+           if (event.key === 'Escape') {
+              onClose();
+           }
+        };
+        window.addEventListener('keydown', handleEsc);
+        return () => {
+            window.removeEventListener('keydown', handleEsc);
+        };
+    }, [onClose]);
+
+    const copyLink = () => {
+        navigator.clipboard.writeText(article.link).then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        });
+    };
+
+    const twitterUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(article.link)}&text=${encodeURIComponent(article.title)}`;
+    const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(article.link)}`;
+    const emailUrl = `mailto:?subject=${encodeURIComponent(article.title)}&body=${encodeURIComponent(`Check out this article: ${article.link}`)}`;
+
+    return (
+        <div className="share-modal-overlay" onClick={onClose}>
+            <div className="share-modal" onClick={(e) => e.stopPropagation()}>
+                <div className="share-modal-header">
+                    <h4>기사 공유하기</h4>
+                    <button onClick={onClose} className="close-button" aria-label="닫기">&times;</button>
+                </div>
+                <p className="share-modal-article-title">{article.title}</p>
+                <div className="share-modal-body">
+                    <ul className="share-options">
+                        <li><button onClick={copyLink} className="share-option-button">{copied ? '복사 완료!' : '링크 복사'}</button></li>
+                        <li><a href={emailUrl} className="share-option-button">이메일</a></li>
+                        <li><a href={twitterUrl} target="_blank" rel="noopener noreferrer" className="share-option-button">트위터</a></li>
+                        <li><a href={facebookUrl} target="_blank" rel="noopener noreferrer" className="share-option-button">페이스북</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+
 const App = () => {
   const [loggedInUser, setLoggedInUser] = useState<string | null>(null);
   const [emailInput, setEmailInput] = useState('');
@@ -48,6 +98,8 @@ const App = () => {
   const [isLoadingSummary, setIsLoadingSummary] = useState(false);
   const [error, setError] = useState('');
   const [summaryError, setSummaryError] = useState('');
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [summaryLength, setSummaryLength] = useState<SummaryLength>('medium');
 
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
@@ -117,30 +169,75 @@ const App = () => {
     }
   }, [loggedInUser, fetchNews]);
 
-  const handleArticleSelect = async (article: Article) => {
+  const handleArticleSelect = (article: Article) => {
     if (selectedArticle?.guid === article.guid) return;
-
     setSelectedArticle(article);
-    setIsLoadingSummary(true);
-    setSummary('');
-    setSummaryError('');
+  };
 
-    try {
-        const prompt = `다음 기사를 한국어로 요약해줘. A4 용지 1/3 분량 정도로, 구독자가 기억해야 할 핵심 중요 단어는 **굵은 글씨**로 강조해서 작성해줘. 응답의 첫 줄에 '## 제목' 형식으로 요약의 제목을 추가해줘.\n\n기사 제목: ${article.title}\n기사 내용: ${article.content.replace(/<[^>]*>?/gm, ' ')}`;
+  useEffect(() => {
+    const generateSummary = async () => {
+      if (!selectedArticle) return;
+
+      setIsLoadingSummary(true);
+      setSummary('');
+      setSummaryError('');
+
+      const getPromptForLength = (length: SummaryLength, article: Article): string => {
+        let lengthInstruction = '';
+        switch (length) {
+          case 'short':
+            lengthInstruction = '3-5 문장의 짧은 단락으로';
+            break;
+          case 'long':
+            lengthInstruction = 'A4 용지 1/2 분량 정도로 상세하게';
+            break;
+          case 'medium':
+          default:
+            lengthInstruction = 'A4 용지 1/3 분량 정도로';
+            break;
+        }
+        return `다음 기사를 한국어로 요약해줘. ${lengthInstruction}, 구독자가 기억해야 할 핵심 중요 단어는 **굵은 글씨**로 강조해서 작성해줘. 응답의 첫 줄에 '## 제목' 형식으로 요약의 제목을 추가해줘.\n\n기사 제목: ${article.title}\n기사 내용: ${article.content.replace(/<[^>]*>?/gm, ' ')}`;
+      };
+
+      try {
+        const prompt = getPromptForLength(summaryLength, selectedArticle);
 
         const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
-            contents: prompt,
+          model: "gemini-2.5-flash",
+          contents: prompt,
         });
-        
+
         const text = response.text;
         setSummary(text);
 
-    } catch (err) {
+      } catch (err) {
         console.error("요약 생성 오류:", err);
         setSummaryError('기사 요약에 실패했습니다. 모델 API에 문제가 있을 수 있습니다.');
-    } finally {
+      } finally {
         setIsLoadingSummary(false);
+      }
+    };
+
+    generateSummary();
+  }, [selectedArticle, summaryLength, ai.models]);
+  
+  const handleShare = async () => {
+    if (!selectedArticle) return;
+
+    const shareData = {
+        title: selectedArticle.title,
+        text: `Check out this AI news article: ${selectedArticle.title}`,
+        url: selectedArticle.link,
+    };
+
+    if (navigator.share) {
+        try {
+            await navigator.share(shareData);
+        } catch (err) {
+            console.log("Share canceled or failed", err);
+        }
+    } else {
+        setIsShareModalOpen(true);
     }
   };
   
@@ -211,7 +308,15 @@ const App = () => {
           )}
         </aside>
         <section className="summary-panel">
-          <h2>기사 요약</h2>
+          <div className="summary-header">
+            <h2>기사 요약</h2>
+            <div className="summary-length-controls">
+              <button className={`length-btn ${summaryLength === 'short' ? 'active' : ''}`} onClick={() => setSummaryLength('short')}>짧게</button>
+              <button className={`length-btn ${summaryLength === 'medium' ? 'active' : ''}`} onClick={() => setSummaryLength('medium')}>보통</button>
+              <button className={`length-btn ${summaryLength === 'long' ? 'active' : ''}`} onClick={() => setSummaryLength('long')}>길게</button>
+            </div>
+          </div>
+
           {isLoadingSummary ? (
             <div className="spinner-container">
               <div className="spinner"></div>
@@ -222,14 +327,25 @@ const App = () => {
           ) : selectedArticle ? (
             <div className="summary-content">
               <h3 className="summary-title">{summaryTitle}</h3>
-              <p dangerouslySetInnerHTML={{ __html: summaryBody }}></p>
-              <a href={selectedArticle.link} target="_blank" rel="noopener noreferrer">원본 기사 읽기</a>
+              <div dangerouslySetInnerHTML={{ __html: summaryBody }}></div>
+              <div className="summary-actions">
+                <a href={selectedArticle.link} target="_blank" rel="noopener noreferrer" className="action-link">원본 기사 읽기</a>
+                <button className="share-button" onClick={handleShare}>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M13.5 1a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3M11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.499 2.499 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5m-8.5 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3m11 5.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3"/>
+                  </svg>
+                  <span>공유하기</span>
+                </button>
+              </div>
             </div>
           ) : (
             <p className="placeholder">왼쪽 목록에서 기사를 선택하여 요약을 확인하세요.</p>
           )}
         </section>
       </main>
+       {isShareModalOpen && selectedArticle && (
+        <ShareModal article={selectedArticle} onClose={() => setIsShareModalOpen(false)} />
+      )}
     </div>
   );
 };
