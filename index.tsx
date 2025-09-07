@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import ReactDOM from 'react-dom/client';
 import { GoogleGenAI } from "@google/genai";
@@ -5,6 +6,13 @@ import { GoogleGenAI } from "@google/genai";
 // 앱 접근을 허용할 이메일 목록
 const ALLOWED_EMAILS = [
   'nanarago@gmail.com',
+  'lorenzo.sohn@lge.com',
+  'kukdong.bae@lge.com',
+  'irene.hwang@lge.com',
+  'jeongmin.hong@lge.com',
+  'daejoong.yoon@lge.com',
+  'jg.kwon@lge.com',
+  'kwanhee.lee@lge.com',
   // 여기에 6명의 다른 팀원 이메일을 추가할 수 있습니다.
   // 'user2@example.com',
   // 'user3@example.com',
@@ -125,47 +133,37 @@ const App = () => {
             contents: prompt,
         });
         
-        let summaryText = response.text;
-        const lines = summaryText.split('\n');
-        const titleIndex = lines.findIndex(line => line.trim().startsWith('##'));
-
-        let finalHtml;
-        if (titleIndex !== -1) {
-            const titleLine = lines[titleIndex];
-            const title = titleLine.replace(/##/g, '').trim().replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-            
-            lines.splice(titleIndex, 1);
-            const body = lines.join('\n');
-            const processedBody = body.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br />');
-            
-            finalHtml = `<h3 class="summary-title">${title}</h3><div class="summary-body">${processedBody}</div>`;
-        } else {
-            const processedText = summaryText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br />');
-            finalHtml = `<div class="summary-body">${processedText}</div>`;
-        }
-        
-        setSummary(finalHtml);
+        const text = response.text;
+        setSummary(text);
 
     } catch (err) {
-      console.error(err);
-      setSummaryError('기사 요약에 실패했습니다. 다른 기사를 선택해 주세요.');
+        console.error("요약 생성 오류:", err);
+        setSummaryError('기사 요약에 실패했습니다. 모델 API에 문제가 있을 수 있습니다.');
     } finally {
-      setIsLoadingSummary(false);
+        setIsLoadingSummary(false);
     }
   };
   
+  const parseSummary = (rawSummary: string) => {
+    const titleMatch = rawSummary.match(/^##\s*(.*)/);
+    const title = titleMatch ? titleMatch[1] : '요약';
+    const content = titleMatch ? rawSummary.substring(titleMatch[0].length).trim() : rawSummary;
+    const formattedContent = content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    return { title, formattedContent };
+  };
+
   if (!loggedInUser) {
     return (
       <div className="login-container">
         <div className="login-box">
           <h1>AI 뉴스 요약</h1>
-          <p>접근을 위해 허용된 이메일을 입력하세요.</p>
+          <p>로그인하여 최신 AI 뉴스를 확인하세요.</p>
           <input
             type="email"
             value={emailInput}
             onChange={(e) => setEmailInput(e.target.value)}
-            placeholder="your-email@example.com"
-            aria-label="Email for login"
+            placeholder="이메일 주소를 입력하세요"
+            onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
           />
           <button onClick={handleLogin}>로그인</button>
           {loginError && <p className="error-message login-error">{loginError}</p>}
@@ -174,37 +172,39 @@ const App = () => {
     );
   }
 
+  const { title: summaryTitle, formattedContent: summaryBody } = parseSummary(summary);
+
   return (
     <div className="container">
       <header className="app-header">
         <h1>AI 뉴스 요약</h1>
         <div className="user-info">
-          <span>{loggedInUser}</span>
-          <button onClick={handleLogout} className="logout-button">로그아웃</button>
+            <span>{loggedInUser}</span>
+            <button className="logout-button" onClick={handleLogout}>로그아웃</button>
         </div>
       </header>
       <main className="content">
         <aside className="headlines-panel">
-          <h2>Top 5 AI 뉴스 헤드라인</h2>
+          <h2>최신 AI 뉴스</h2>
           {isLoadingHeadlines ? (
-            <div className="skeleton-container">
-              {[...Array(5)].map((_, i) => <div key={i} className="skeleton-item"></div>)}
+             <div className="skeleton-container">
+                {[...Array(5)].map((_, i) => <div key={i} className="skeleton-item" />)}
             </div>
           ) : error ? (
             <p className="error-message">{error}</p>
           ) : (
             <ul>
-              {articles.map((article) => (
+              {articles.map(article => (
                 <li
                   key={article.guid}
                   className={selectedArticle?.guid === article.guid ? 'active' : ''}
                   onClick={() => handleArticleSelect(article)}
                   tabIndex={0}
-                  onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleArticleSelect(article)}
-                  aria-selected={selectedArticle?.guid === article.guid}
-                  role="button"
+                  onKeyPress={(e) => (e.key === 'Enter' || e.key === ' ') && handleArticleSelect(article)}
+                  aria-label={`기사 선택: ${article.title}`}
                 >
-                  {article.title} <strong className="source-tag">[{article.source}]</strong>
+                    <div>{article.title}</div>
+                    <small><span className="source-tag">{article.source}</span> - {new Date(article.pubDate).toLocaleDateString()}</small>
                 </li>
               ))}
             </ul>
@@ -212,20 +212,22 @@ const App = () => {
         </aside>
         <section className="summary-panel">
           <h2>기사 요약</h2>
-          <div className="summary-content">
-            {isLoadingSummary ? (
-              <div className="spinner-container">
-                <div className="spinner"></div>
-                <p>요약 중입니다...</p>
-              </div>
-            ) : summaryError ? (
-               <p className="error-message">{summaryError}</p>
-            ) : summary ? (
-              <div dangerouslySetInnerHTML={{ __html: summary }} />
-            ) : (
-              <p className="placeholder">왼쪽 목록에서 기사를 선택하여 요약을 확인하세요.</p>
-            )}
-          </div>
+          {isLoadingSummary ? (
+            <div className="spinner-container">
+              <div className="spinner"></div>
+              <p>AI가 기사를 요약하고 있습니다...</p>
+            </div>
+          ) : summaryError ? (
+            <p className="error-message">{summaryError}</p>
+          ) : selectedArticle ? (
+            <div className="summary-content">
+              <h3 className="summary-title">{summaryTitle}</h3>
+              <p dangerouslySetInnerHTML={{ __html: summaryBody }}></p>
+              <a href={selectedArticle.link} target="_blank" rel="noopener noreferrer">원본 기사 읽기</a>
+            </div>
+          ) : (
+            <p className="placeholder">왼쪽 목록에서 기사를 선택하여 요약을 확인하세요.</p>
+          )}
         </section>
       </main>
     </div>
