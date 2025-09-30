@@ -1,8 +1,11 @@
 {
-  "name": "ai-news-reader-backend",
+  "name": "ai-news-reader-vercel",
   "version": "1.0.0",
   "private": true,
   "dependencies": {
-    "@google/genai": "^1.13.0"
+    "@google/genai": "^1.13.0",
+    "@vercel/node": "^3.2.3",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
   }
 }

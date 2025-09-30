@@ -1,15 +1,5 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import ReactDOM from 'react-dom/client';
-
-// RSS 피드 소스 정의
-const RSS_FEEDS = [
-  { name: 'TechCrunch AI', url: 'https://techcrunch.com/category/artificial-intelligence/feed/' },
-  { name: 'The Verge AI', url: 'https://www.theverge.com/rss/group/ai-artificial-intelligence/index.xml' },
-  { name: 'Ars Technica AI', url: 'https://arstechnica.com/information-technology/artificial-intelligence/feed/' },
-];
-
-const RSS_PROXY_URL = 'https://api.rss2json.com/v1/api.json?rss_url=';
 
 interface Article {
   title: string;
@@ -69,13 +59,7 @@ const ShareModal = ({ article, onClose }: { article: Article, onClose: () => voi
     );
 };
 
-
 const App = () => {
-  const [loggedInUser, setLoggedInUser] = useState<string | null>(null);
-  const [emailInput, setEmailInput] = useState('');
-  const [loginError, setLoginError] = useState('');
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
-
   const [articles, setArticles] = useState<Article[]>([]);
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [summary, setSummary] = useState('');
@@ -86,81 +70,16 @@ const App = () => {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [summaryLength, setSummaryLength] = useState<SummaryLength>('medium');
 
-  useEffect(() => {
-    // 앱 시작 시 로컬 저장소에서 로그인 정보 확인
-    const storedUser = localStorage.getItem('loggedInUser');
-    if (storedUser) {
-      setLoggedInUser(storedUser);
-    }
-  }, []);
-
-  const handleLogin = async () => {
-    if (!emailInput) {
-      setLoginError('이메일을 입력해주세요.');
-      return;
-    }
-    setIsLoggingIn(true);
-    setLoginError('');
-
-    try {
-      const response = await fetch('/api/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email: emailInput }),
-      });
-      
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        const lowercasedEmail = emailInput.toLowerCase();
-        localStorage.setItem('loggedInUser', lowercasedEmail);
-        setLoggedInUser(lowercasedEmail);
-      } else {
-        setLoginError(data.message || '로그인에 실패했습니다.');
-      }
-    } catch (err) {
-      setLoginError('네트워크 오류가 발생했습니다. 다시 시도해주세요.');
-    } finally {
-      setIsLoggingIn(false);
-    }
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('loggedInUser');
-    setLoggedInUser(null);
-    setEmailInput('');
-  };
-  
   const fetchNews = useCallback(async () => {
     setIsLoadingHeadlines(true);
     setError('');
     try {
-      const feedPromises = RSS_FEEDS.map(feed =>
-        fetch(`${RSS_PROXY_URL}${encodeURIComponent(feed.url)}`)
-          .then(res => {
-            if (!res.ok) {
-              throw new Error(`Failed to fetch RSS feed: ${feed.name}`);
-            }
-            return res.json();
-          })
-          .then(data => data.items?.map((item: any) => ({
-            ...item,
-            source: feed.name,
-            content: item.content || item.description,
-          })) || [])
-      );
-
-      const allItems = (await Promise.all(feedPromises)).flat();
-      
-      const uniqueItems = Array.from(new Map(allItems.map(item => [item.guid || item.link, item])).values());
-
-      const sortedItems = uniqueItems
-        .sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime())
-        .slice(0, 5);
-
-      setArticles(sortedItems as Article[]);
+      const response = await fetch('/api/news');
+      if (!response.ok) {
+        throw new Error('Failed to fetch news from the server.');
+      }
+      const data = await response.json();
+      setArticles(data);
     } catch (err) {
       console.error(err);
       setError('뉴스 헤드라인을 가져오는 데 실패했습니다. 잠시 후 다시 시도해 주세요.');
@@ -170,10 +89,8 @@ const App = () => {
   }, []);
 
   useEffect(() => {
-    if (loggedInUser) {
-        fetchNews();
-    }
-  }, [loggedInUser, fetchNews]);
+    fetchNews();
+  }, [fetchNews]);
 
   const handleArticleSelect = (article: Article) => {
     if (selectedArticle?.guid === article.guid) return;
@@ -189,27 +106,33 @@ const App = () => {
       setSummaryError('');
 
       try {
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = selectedArticle.content;
+        const plainTextContent = tempDiv.textContent || tempDiv.innerText || "";
+        
         const response = await fetch('/api/summarize', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            article: selectedArticle,
-            summaryLength: summaryLength,
-          }),
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                title: selectedArticle.title,
+                content: plainTextContent,
+                summaryLength: summaryLength,
+            }),
         });
 
-        const data = await response.json();
-
-        if (response.ok) {
-          setSummary(data.summary);
-        } else {
-          throw new Error(data.error || '알 수 없는 요약 오류');
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || '기사 요약에 실패했습니다.');
         }
+
+        const data = await response.json();
+        setSummary(data.summary);
+
       } catch (err: any) {
         console.error("요약 생성 오류:", err);
-        setSummaryError(err.message || '기사 요약에 실패했습니다. API에 문제가 있을 수 있습니다.');
+        setSummaryError(err.message || '기사 요약에 실패했습니다. 잠시 후 다시 시도해주세요.');
       } finally {
         setIsLoadingSummary(false);
       }
@@ -246,39 +169,12 @@ const App = () => {
     return { title, formattedContent };
   };
 
-  if (!loggedInUser) {
-    return (
-      <div className="login-container">
-        <div className="login-box">
-          <h1>AI 뉴스 요약</h1>
-          <p>로그인하여 최신 AI 뉴스를 확인하세요.</p>
-          <input
-            type="email"
-            value={emailInput}
-            onChange={(e) => setEmailInput(e.target.value)}
-            placeholder="이메일 주소를 입력하세요"
-            onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
-            disabled={isLoggingIn}
-          />
-          <button onClick={handleLogin} disabled={isLoggingIn}>
-            {isLoggingIn ? '로그인 중...' : '로그인'}
-          </button>
-          {loginError && <p className="error-message login-error">{loginError}</p>}
-        </div>
-      </div>
-    );
-  }
-
   const { title: summaryTitle, formattedContent: summaryBody } = parseSummary(summary);
 
   return (
     <div className="container">
       <header className="app-header">
         <h1>AI 뉴스 요약</h1>
-        <div className="user-info">
-            <span>{loggedInUser}</span>
-            <button className="logout-button" onClick={handleLogout}>로그아웃</button>
-        </div>
       </header>
       <main className="content">
         <aside className="headlines-panel">
@@ -323,7 +219,9 @@ const App = () => {
               <p>AI가 기사를 요약하고 있습니다...</p>
             </div>
           ) : summaryError ? (
-            <p className="error-message">{summaryError}</p>
+             <div className="summary-content placeholder-container">
+                <p className="error-message">{summaryError}</p>
+            </div>
           ) : selectedArticle ? (
             <div className="summary-content">
               <h3 className="summary-title">{summaryTitle}</h3>
