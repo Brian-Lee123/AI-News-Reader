@@ -1,19 +1,25 @@
-
 :root {
+  /* Main Palette */
+  --primary-color: #1a73e8;
+  --primary-color-light: #e8f0fe;
+  --text-color: #202124;
+  --secondary-text-color: #5f6368;
   --background-color: #f8f9fa;
   --panel-background: #ffffff;
-  --text-color: #212529;
-  --primary-color: #007bff;
-  --primary-color-light: #e7f3ff;
-  --border-color: #dee2e6;
-  --hover-bg-color: #f1f3f5;
-  --skeleton-bg: #e0e0e0;
-  --error-color: #dc3545;
+
+  /* Borders & Shadows */
+  --border-color: #dadce0;
+  --hover-bg-color: #f1f3f4;
+  --card-shadow: 0 1px 3px rgba(60,64,67,0.08);
+  --modal-shadow: 0 1px 3px 0 rgba(60, 64, 67, .3), 0 4px 8px 3px rgba(60, 64, 67, .15);
+
+  /* Misc */
+  --error-color: #d93025;
 }
 
 body {
   margin: 0;
-  font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family: 'Google Sans', 'Roboto', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background-color: var(--background-color);
   color: var(--text-color);
   -webkit-font-smoothing: antialiased;
@@ -31,9 +37,9 @@ body {
 
 .login-box {
   background: var(--panel-background);
-  padding: 2.5rem;
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  padding: 2.5rem 3rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
   text-align: center;
   width: 90%;
   max-width: 400px;
@@ -41,22 +47,31 @@ body {
 
 .login-box h1 {
   margin-top: 0;
-  color: var(--primary-color);
+  font-size: 1.75rem;
+  font-weight: 500;
+  color: var(--text-color);
 }
 
 .login-box p {
-  color: #6c757d;
-  margin-bottom: 1.5rem;
+  color: var(--secondary-text-color);
+  margin-bottom: 2rem;
 }
 
 .login-box input {
   width: 100%;
-  padding: 0.75rem;
+  padding: 0.75rem 1rem;
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: 4px;
   font-size: 1rem;
   margin-bottom: 1rem;
   box-sizing: border-box;
+  transition: border-color 0.2s;
+}
+
+.login-box input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 1px var(--primary-color);
 }
 
 .login-box button {
@@ -65,21 +80,22 @@ body {
   border: none;
   background-color: var(--primary-color);
   color: white;
-  border-radius: 8px;
+  border-radius: 4px;
   font-size: 1rem;
-  font-weight: bold;
+  font-weight: 500;
   cursor: pointer;
   transition: background-color 0.2s;
 }
 
 .login-box button:hover {
-  background-color: #0056b3;
+  background-color: #185abc;
 }
 
 .login-error {
   margin-top: 1rem !important;
   text-align: center !important;
   font-size: 0.9rem !important;
+  color: var(--error-color);
 }
 
 
@@ -94,15 +110,17 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 2rem;
+  padding: 0.75rem 2rem;
   border-bottom: 1px solid var(--border-color);
   background-color: var(--panel-background);
+  flex-shrink: 0;
 }
 
 .app-header h1 {
   margin: 0;
-  font-size: 1.5rem;
-  color: var(--primary-color);
+  font-size: 1.375rem;
+  font-weight: 500;
+  color: var(--secondary-text-color);
 }
 
 .user-info {
@@ -112,54 +130,55 @@ body {
 }
 
 .user-info span {
-  font-weight: bold;
+  font-weight: 500;
+  color: var(--text-color);
 }
 
 .logout-button {
   background: none;
   border: 1px solid var(--border-color);
   padding: 0.4rem 0.8rem;
-  border-radius: 6px;
+  border-radius: 4px;
   cursor: pointer;
   transition: background-color 0.2s, color 0.2s;
-  color: var(--text-color);
-  font-weight: 700;
+  color: var(--primary-color);
+  font-weight: 500;
 }
 
 .logout-button:hover {
-  background-color: var(--hover-bg-color);
-  color: var(--primary-color);
+  background-color: var(--primary-color-light);
 }
 
 .content {
   display: flex;
   flex: 1;
   overflow: hidden;
-}
-
-.headlines-panel,
-.summary-panel {
-  padding: 1.5rem;
-  overflow-y: auto;
-  background-color: var(--panel-background);
+  background-color: var(--background-color);
 }
 
 .headlines-panel {
   flex: 1 1 40%;
   border-right: 1px solid var(--border-color);
+  background-color: var(--panel-background);
+  overflow-y: auto;
+  padding: 1rem 0;
 }
 
 .summary-panel {
   flex: 1 1 60%;
   display: flex;
   flex-direction: column;
+  padding: 1.5rem;
+  overflow-y: auto;
 }
 
 h2 {
   margin-top: 0;
-  padding-bottom: 0.5rem;
-  border-bottom: 2px solid var(--primary-color);
-  display: inline-block;
+  margin-bottom: 1rem;
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: var(--text-color);
+  padding: 0 1.5rem;
 }
 
 .headlines-panel ul {
@@ -169,15 +188,19 @@ h2 {
 }
 
 .headlines-panel li {
-  padding: 1rem;
-  border-radius: 8px;
+  padding: 1rem 1.5rem;
   cursor: pointer;
   transition: background-color 0.2s ease-in-out;
   border-bottom: 1px solid var(--border-color);
 }
 
-.headlines-panel li:last-child {
-  border-bottom: none;
+.headlines-panel li div {
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+}
+
+.headlines-panel li:first-child {
+  border-top: 1px solid var(--border-color);
 }
 
 .headlines-panel li:hover {
@@ -186,17 +209,18 @@ h2 {
 
 .headlines-panel li.active {
   background-color: var(--primary-color-light);
-  font-weight: bold;
-  color: var(--primary-color);
+  font-weight: 500;
+  color: #1967d2;
 }
 
 .source-tag {
-  color: #6c757d;
-  font-weight: 700;
+  color: var(--secondary-text-color);
+  font-weight: 400;
 }
 
-li.active .source-tag {
-  color: var(--primary-color);
+li.active .source-tag,
+li.active small {
+  color: #1967d2;
 }
 
 .summary-header {
@@ -206,44 +230,61 @@ li.active .source-tag {
   flex-wrap: wrap;
   gap: 1rem;
   margin-bottom: 1rem;
+  padding: 0 0.5rem;
 }
 
 .summary-header h2 {
   margin: 0;
   padding: 0;
-  border: none;
 }
 
 .summary-length-controls {
   display: flex;
   gap: 0.5rem;
-  background-color: var(--hover-bg-color);
-  padding: 4px;
-  border-radius: 8px;
 }
 
 .length-btn {
-  padding: 0.4rem 0.8rem;
-  border: none;
-  background-color: transparent;
-  color: #6c757d;
-  font-weight: bold;
-  border-radius: 6px;
+  padding: 0.4rem 1rem;
+  border: 1px solid var(--border-color);
+  background-color: var(--panel-background);
+  color: var(--primary-color);
+  font-weight: 500;
+  border-radius: 4px;
   cursor: pointer;
-  transition: background-color 0.2s, color 0.2s;
-  font-size: 0.9rem;
+  transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+  font-size: 0.875rem;
 }
 
 .length-btn.active {
-  background-color: var(--panel-background);
-  color: var(--primary-color);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  background-color: var(--primary-color-light);
+  border-color: #a8c7fa;
+  color: #0b57d0;
 }
 
 .length-btn:not(.active):hover {
-  color: var(--text-color);
+  background-color: var(--hover-bg-color);
 }
 
+.summary-content,
+.placeholder,
+.error-message,
+.spinner-container {
+    background-color: var(--panel-background);
+    padding: 2rem;
+    border: none;
+    border-radius: 8px;
+    flex-grow: 1;
+    box-shadow: var(--card-shadow);
+}
+
+.placeholder,
+.error-message,
+.spinner-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+}
 
 .summary-content {
   margin-top: 0;
@@ -252,40 +293,36 @@ li.active .source-tag {
 }
 
 .summary-title {
-  font-size: 1.5rem;
-  font-weight: 700;
+  font-size: 1.625rem;
+  font-weight: 500;
   line-height: 1.4;
   margin-top: 0;
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
   color: var(--text-color);
 }
 
 .summary-content strong {
   color: var(--primary-color);
+  font-weight: 500;
 }
 
-.placeholder,
-.error-message {
-  color: #6c757d;
+.placeholder {
+  color: var(--secondary-text-color);
   text-align: center;
-  margin-top: 4rem;
-  font-size: 1.1rem;
-  flex-grow: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  margin: 0;
+  font-size: 1rem;
 }
-
 .error-message {
-    color: var(--error-color);
+  color: var(--error-color);
+  text-align: center;
 }
 
 .summary-actions {
-  margin-top: 2rem;
+  margin-top: 1.5rem;
   padding-top: 1.5rem;
   border-top: 1px solid var(--border-color);
   display: flex;
-  gap: 1rem;
+  gap: 0.75rem;
   align-items: center;
   flex-wrap: wrap;
 }
@@ -297,13 +334,13 @@ li.active .source-tag {
   justify-content: center;
   gap: 0.5rem;
   padding: 0.6rem 1.2rem;
-  border-radius: 8px;
+  border-radius: 4px;
   text-decoration: none;
-  font-weight: bold;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
   border: 1px solid;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
 }
 
 .action-link {
@@ -312,44 +349,36 @@ li.active .source-tag {
   border-color: var(--primary-color);
 }
 .action-link:hover {
-  background-color: #0056b3;
-  border-color: #0056b3;
+  background-color: #185abc;
+  border-color: #185abc;
 }
 
 .share-button {
   background-color: var(--panel-background);
-  color: var(--text-color);
+  color: var(--primary-color);
   border-color: var(--border-color);
 }
 
 .share-button:hover {
-  background-color: var(--hover-bg-color);
-  border-color: #adb5bd;
+  background-color: var(--primary-color-light);
+  border-color: #a8c7fa;
 }
 
 
 /* Loading States */
-.spinner-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  flex-grow: 1;
-}
-
 .spinner {
-  width: 50px;
-  height: 50px;
-  border: 5px solid var(--primary-color-light);
-  border-top: 5px solid var(--primary-color);
+  width: 40px;
+  height: 40px;
+  border: 4px solid var(--primary-color-light);
+  border-top: 4px solid var(--primary-color);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
 
 .spinner-container p {
   margin-top: 1rem;
-  color: var(--primary-color);
-  font-weight: bold;
+  color: var(--text-color);
+  font-weight: 500;
 }
 
 @keyframes spin {
@@ -360,16 +389,18 @@ li.active .source-tag {
 .skeleton-container {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
 }
 
 .skeleton-item {
-  height: 60px;
+  height: 80px;
   width: 100%;
-  background: linear-gradient(90deg, var(--skeleton-bg) 25%, #f0f0f0 50%, var(--skeleton-bg) 75%);
+  background: linear-gradient(90deg, #f1f1f1 25%, #e8e8e8 50%, #f1f1f1 75%);
   background-size: 200% 100%;
   animation: skeleton-loading 1.5s infinite;
-  border-radius: 8px;
+  border-bottom: 1px solid var(--border-color);
+}
+.skeleton-container .skeleton-item:first-child {
+    border-top: 1px solid var(--border-color);
 }
 
 @keyframes skeleton-loading {
@@ -388,7 +419,7 @@ li.active .source-tag {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.6);
+  background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -398,12 +429,13 @@ li.active .source-tag {
 
 .share-modal {
   background: var(--panel-background);
-  padding: 1.5rem 2rem;
-  border-radius: 12px;
-  box-shadow: 0 5px 25px rgba(0, 0, 0, 0.15);
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: var(--modal-shadow);
   width: 90%;
   max-width: 450px;
   animation: scaleUp 0.3s ease;
+  border: none;
 }
 
 .share-modal-header {
@@ -415,8 +447,9 @@ li.active .source-tag {
 
 .share-modal-header h4 {
   margin: 0;
-  font-size: 1.25rem;
-  color: var(--primary-color);
+  font-size: 1.375rem;
+  font-weight: 500;
+  color: var(--text-color);
 }
 
 .close-button {
@@ -425,7 +458,7 @@ li.active .source-tag {
   font-size: 2rem;
   font-weight: 300;
   line-height: 1;
-  color: #6c757d;
+  color: var(--secondary-text-color);
   cursor: pointer;
   padding: 0;
 }
@@ -435,12 +468,12 @@ li.active .source-tag {
 }
 
 .share-modal-article-title {
-    font-weight: bold;
+    font-weight: 500;
     margin-bottom: 1.5rem;
     padding-bottom: 1rem;
     border-bottom: 1px solid var(--border-color);
     font-size: 1rem;
-    color: #495057;
+    color: var(--text-color);
 }
 
 .share-options {
@@ -457,10 +490,10 @@ li.active .source-tag {
   width: 100%;
   padding: 0.75rem;
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: 4px;
   background-color: var(--panel-background);
-  color: var(--text-color);
-  font-size: 1rem;
+  color: var(--primary-color);
+  font-size: 0.9rem;
   font-weight: 500;
   text-align: center;
   text-decoration: none;
@@ -471,7 +504,7 @@ li.active .source-tag {
 
 .share-option-button:hover {
   background-color: var(--hover-bg-color);
-  border-color: #adb5bd;
+  border-color: #c6c6c6;
 }
 
 @keyframes fadeIn {
@@ -494,6 +527,21 @@ li.active .source-tag {
     border-right: none;
     border-bottom: 1px solid var(--border-color);
     flex-basis: 50vh;
+  }
+
+  .summary-panel {
+    padding: 1rem;
+  }
+  
+  .summary-content,
+  .placeholder,
+  .error-message,
+  .spinner-container {
+    padding: 1.5rem;
+  }
+
+  .app-header {
+    padding: 0.75rem 1rem;
   }
 
   .app-header h1 {

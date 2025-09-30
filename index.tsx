@@ -1,22 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import ReactDOM from 'react-dom/client';
-import { GoogleGenAI } from "@google/genai";
-
-// 앱 접근을 허용할 이메일 목록
-const ALLOWED_EMAILS = [
-  'nanarago@gmail.com',
-  'lorenzo.sohn@lge.com',
-  'kukdong.bae@lge.com',
-  'irene.hwang@lge.com',
-  'jeongmin.hong@lge.com',
-  'daejoong.yoon@lge.com',
-  'jg.kwon@lge.com',
-  'kwanhee.lee@lge.com',
-  // 여기에 6명의 다른 팀원 이메일을 추가할 수 있습니다.
-  // 'user2@example.com',
-  // 'user3@example.com',
-];
 
 // RSS 피드 소스 정의
 const RSS_FEEDS = [
@@ -90,6 +74,7 @@ const App = () => {
   const [loggedInUser, setLoggedInUser] = useState<string | null>(null);
   const [emailInput, setEmailInput] = useState('');
   const [loginError, setLoginError] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   const [articles, setArticles] = useState<Article[]>([]);
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
@@ -101,23 +86,44 @@ const App = () => {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [summaryLength, setSummaryLength] = useState<SummaryLength>('medium');
 
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
   useEffect(() => {
     // 앱 시작 시 로컬 저장소에서 로그인 정보 확인
     const storedUser = localStorage.getItem('loggedInUser');
-    if (storedUser && ALLOWED_EMAILS.includes(storedUser)) {
+    if (storedUser) {
       setLoggedInUser(storedUser);
     }
   }, []);
 
-  const handleLogin = () => {
-    if (ALLOWED_EMAILS.includes(emailInput.toLowerCase())) {
-      localStorage.setItem('loggedInUser', emailInput.toLowerCase());
-      setLoggedInUser(emailInput.toLowerCase());
-      setLoginError('');
-    } else {
-      setLoginError('접근 권한이 없는 이메일입니다.');
+  const handleLogin = async () => {
+    if (!emailInput) {
+      setLoginError('이메일을 입력해주세요.');
+      return;
+    }
+    setIsLoggingIn(true);
+    setLoginError('');
+
+    try {
+      const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: emailInput }),
+      });
+      
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        const lowercasedEmail = emailInput.toLowerCase();
+        localStorage.setItem('loggedInUser', lowercasedEmail);
+        setLoggedInUser(lowercasedEmail);
+      } else {
+        setLoginError(data.message || '로그인에 실패했습니다.');
+      }
+    } catch (err) {
+      setLoginError('네트워크 오류가 발생했습니다. 다시 시도해주세요.');
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
@@ -182,44 +188,35 @@ const App = () => {
       setSummary('');
       setSummaryError('');
 
-      const getPromptForLength = (length: SummaryLength, article: Article): string => {
-        let lengthInstruction = '';
-        switch (length) {
-          case 'short':
-            lengthInstruction = '3-5 문장의 짧은 단락으로';
-            break;
-          case 'long':
-            lengthInstruction = 'A4 용지 1/2 분량 정도로 상세하게';
-            break;
-          case 'medium':
-          default:
-            lengthInstruction = 'A4 용지 1/3 분량 정도로';
-            break;
-        }
-        return `다음 기사를 한국어로 요약해줘. ${lengthInstruction}, 구독자가 기억해야 할 핵심 중요 단어는 **굵은 글씨**로 강조해서 작성해줘. 응답의 첫 줄에 '## 제목' 형식으로 요약의 제목을 추가해줘.\n\n기사 제목: ${article.title}\n기사 내용: ${article.content.replace(/<[^>]*>?/gm, ' ')}`;
-      };
-
       try {
-        const prompt = getPromptForLength(summaryLength, selectedArticle);
-
-        const response = await ai.models.generateContent({
-          model: "gemini-2.5-flash",
-          contents: prompt,
+        const response = await fetch('/api/summarize', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            article: selectedArticle,
+            summaryLength: summaryLength,
+          }),
         });
 
-        const text = response.text;
-        setSummary(text);
+        const data = await response.json();
 
-      } catch (err) {
+        if (response.ok) {
+          setSummary(data.summary);
+        } else {
+          throw new Error(data.error || '알 수 없는 요약 오류');
+        }
+      } catch (err: any) {
         console.error("요약 생성 오류:", err);
-        setSummaryError('기사 요약에 실패했습니다. 모델 API에 문제가 있을 수 있습니다.');
+        setSummaryError(err.message || '기사 요약에 실패했습니다. API에 문제가 있을 수 있습니다.');
       } finally {
         setIsLoadingSummary(false);
       }
     };
 
     generateSummary();
-  }, [selectedArticle, summaryLength, ai.models]);
+  }, [selectedArticle, summaryLength]);
   
   const handleShare = async () => {
     if (!selectedArticle) return;
@@ -261,8 +258,11 @@ const App = () => {
             onChange={(e) => setEmailInput(e.target.value)}
             placeholder="이메일 주소를 입력하세요"
             onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
+            disabled={isLoggingIn}
           />
-          <button onClick={handleLogin}>로그인</button>
+          <button onClick={handleLogin} disabled={isLoggingIn}>
+            {isLoggingIn ? '로그인 중...' : '로그인'}
+          </button>
           {loginError && <p className="error-message login-error">{loginError}</p>}
         </div>
       </div>
